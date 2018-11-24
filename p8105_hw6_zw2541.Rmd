@@ -133,3 +133,31 @@ birthweight %>%
         y = "Residuals")
 ```
 
+### Compare the model above to two others
+
+Note: Model_1 is the model we created above, model_2 is the model using length at birth and gestational age as predictors (main effects only), and model_2 is the model using head circumference, length, sex, and all interactions (including the three-way interaction) between these.
+
+```{r}
+cross_validation = 
+  crossv_mc(birthweight, 1000) %>%
+  mutate(train = map(train, as_tibble),
+         test = map(test, as_tibble)) %>% 
+  mutate(model_1 = map(train, ~lm(bwt ~  babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .x)),
+         model_2 = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+         model_3 = map(train, ~lm(bwt ~ babysex + blength + bhead + babysex * blength + babysex * bhead + blength * bhead + babysex * blength * bhead, data = .x)),
+         rmse_1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
+         rmse_2 = map2_dbl(model_2, test, ~rmse(model = .x, data = .y)),
+         rmse_3 = map2_dbl(model_3, test, ~rmse(model = .x, data = .y)))
+
+cross_validation %>% 
+  select(starts_with("rmse")) %>% 
+  gather(key = model, value = rmse) %>% 
+  mutate(model = str_replace(model, "rmse_", ""),
+         model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin() +
+  labs(title = "Comparison between Three Models",
+        x = "Model",
+        y = "Rmse")
+```
+
