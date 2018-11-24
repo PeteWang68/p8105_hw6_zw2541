@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(modelr)
 ```
 
 ## Problem 1
@@ -30,12 +31,12 @@ homicides = read_csv("https://raw.githubusercontent.com/washingtonpost/data-homi
 ### Fit a logistic regression model
 
 ```{r}
-ml_baltimore =
+lm_baltimore =
   homicides %>% 
   filter(city_state == "Baltimore, MD") %>% 
   glm(solved ~ victim_sex + victim_race + victim_age, family = binomial, data = .)
 
-ml_baltimore %>% 
+lm_baltimore %>% 
   broom::tidy(conf.int = TRUE) %>% 
   mutate(odds_ratio = exp(estimate),
          conf_low = exp(conf.low),
@@ -45,4 +46,41 @@ ml_baltimore %>%
   knitr::kable(digits = 3)
 ```
 
-The estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims is 0.441 (keeping all other variables fixed), and the confidence interval is (0.312, 0.620).
+The estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims is 0.441 (keeping all other variables fixed), and the 95% confidence interval is (0.312, 0.620).
+
+### Run glm for each of the cities 
+
+```{r, warning = FALSE}
+estimate_ci =   
+  homicides %>% 
+  group_by(city_state) %>% 
+  nest() %>% 
+  mutate(lm_everycity = map(data, ~glm(solved ~ victim_sex + victim_race + victim_age, family = binomial, data = .x)),
+         lm_everycity_ci = map(lm_everycity, broom::confint_tidy),
+         lm_everycity = map(lm_everycity, broom::tidy)) %>%
+  select(-data) %>% 
+  unnest() %>% 
+  mutate(odds_ratio = exp(estimate),
+         conf_low = exp(conf.low),
+         conf_high = exp(conf.high)) %>% 
+  filter(term == "victim_racenon-White") %>%
+  select(city_state, odds_ratio, conf_low, conf_high)
+
+estimate_ci 
+```
+
+### Create the plot
+
+```{r}
+estimate_ci %>% 
+  mutate(city_state = fct_reorder(city_state, odds_ratio)) %>% 
+  ggplot(aes(x = city_state, y = odds_ratio)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(
+        title = "the Estimate Odds Ratio and Confidence Interval of Each City",
+        x = "Odds Ratio",
+        y = "City, State")
+```
+
