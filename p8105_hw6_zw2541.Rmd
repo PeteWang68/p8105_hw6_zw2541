@@ -78,10 +78,9 @@ estimate_ci %>%
   geom_point() +
   geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  labs(
-        title = "the Estimate Odds Ratio and Confidence Interval of Each City",
-        x = "Odds Ratio",
-        y = "City, State")
+  labs(title = "the Estimate Odds Ratio and Confidence Interval of Each City",
+       x = "Odds Ratio",
+       y = "City, State")
 ```
 
 
@@ -97,10 +96,40 @@ birthweight = read_csv("data/birthweight.csv") %>%
     babysex = as.factor(babysex), 
     frace = as.factor(frace), 
     malform = as.factor(malform), 
-    mrace = as.factor(mrace)
-  )
+    mrace = as.factor(mrace))
 
 # check for missing data
 sum(is.na(birthweight))
+```
+ 
+### Propose a regression model for birthweight
+
+Use stepwise regression method (backward) to select the model.
+
+```{r}
+multiple_model = lm(bwt ~ ., data = birthweight)
+step(multiple_model, direction = 'backward')
+```
+
+From the result above, we got the multiple regression model: bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight. Then we use this formula to create a multiple regression model.
+
+```{r}
+mlr_birthweight = lm(bwt ~ babysex + bhead + blength + delwt + fincome +  gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight)
+
+summary(mlr_birthweight)
+```
+
+### Plot of model residuals against fitted values 
+
+```{r}
+birthweight %>% 
+  add_predictions(mlr_birthweight) %>% 
+  add_residuals(mlr_birthweight) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point() + 
+  geom_smooth() + 
+  labs(title = "Model Residuals against Fitted Values",
+        x = "Predictions",
+        y = "Residuals")
 ```
 
