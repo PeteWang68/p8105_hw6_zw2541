@@ -77,13 +77,14 @@ estimate_ci %>%
   ggplot(aes(x = city_state, y = odds_ratio)) +
   geom_point() +
   geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
+  geom_hline(yintercept = 1.0, linetype = "dashed") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   labs(title = "the Estimate Odds Ratio and Confidence Interval of Each City",
        x = "Odds Ratio",
        y = "City, State")
 ```
 
-
+The plot above shows that only three cities (Durham, NC; Birmingham, AL; Tampa, FL) have the estimated odds ratio higher than one, which means that the odds of solving homicides of non-white victims is higher than the odds of solving homicides of white victims. Besides, 21 cities' higher confident interval limits are higher than one.
 
 ## Problem 2
 
@@ -126,12 +127,14 @@ birthweight %>%
   add_predictions(mlr_birthweight) %>% 
   add_residuals(mlr_birthweight) %>% 
   ggplot(aes(x = pred, y = resid)) + 
-  geom_point() + 
+  geom_point(alpha = 0.25) + 
   geom_smooth() + 
   labs(title = "Model Residuals against Fitted Values",
         x = "Predictions",
         y = "Residuals")
 ```
+
+The plot above is a Residuals vs Fitted/Predicted Values plot. It indicates that when the predicted values are bewteen 2000 and 4000, the residuals form a horizontal (linear) 'band' around zero and evenly distributed around 0. Therefore, this model is not fit when the predicted value is lower than 2000 or higher than 4000.
 
 ### Compare the model above to two others
 
@@ -139,7 +142,7 @@ Note: Model_1 is the model we created above, model_2 is the model using length a
 
 ```{r}
 cross_validation = 
-  crossv_mc(birthweight, 1000) %>%
+  crossv_mc(birthweight, 100) %>%
   mutate(train = map(train, as_tibble),
          test = map(test, as_tibble)) %>% 
   mutate(model_1 = map(train, ~lm(bwt ~  babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .x)),
@@ -158,6 +161,7 @@ cross_validation %>%
   geom_violin() +
   labs(title = "Comparison between Three Models",
         x = "Model",
-        y = "Rmse")
+        y = "RMSE")
 ```
 
+From the plot above, we found that model_1 (which is the model we created) has the lowest RMSE and model_2 has the highest RMSE. Therefore, we conclude that our model is the best and model_2 is the worst.
